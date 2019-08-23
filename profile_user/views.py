@@ -5,10 +5,34 @@
 #Django
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import DetailView
 from django.shortcuts import render, redirect
+from django.urls import reverse
 
+# Models
+from django.contrib.auth.models import User
+from posts.models import Posts
 # Forms
 from profile_user.forms import ProfileForm, SignupForm
+
+
+class UserDetailView(LoginRequiredMixin, DetailView):
+    """User detail view."""
+
+    template_name = 'users/detail.html'
+    slug_field = 'username'
+    slug_url_kwarg = 'username'
+    queryset = User.objects.all()
+    context_object_name = 'user'
+
+    def get_context_data(self, **kwargs):
+        """Add user's postst to context"""
+        context = super().get_context_data(**kwargs)
+        user = self.get_object()
+        context['posts'] = Posts.objects.filter(user=user).order_by('-created')
+        return context
+
 
 @login_required
 def update_profile(request):
@@ -24,9 +48,9 @@ def update_profile(request):
             profile.biography= data['biography']
             profile.picture = data['picture']
             profile.save()
-
-
-            return redirect('update_profile')
+            
+            url = reverse('users:detail', kwargs= {'username':request.user.username})
+            return redirect(url)
                         
     else :
         form = ProfileForm()
@@ -54,7 +78,7 @@ def login_view(request):
          password=password)
         if user :
              login(request,user)
-             return redirect('feed')
+             return redirect('posts:feed')
         else: 
             return render(
                 request,
@@ -69,7 +93,7 @@ def signup(request):
         form = SignupForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('login')
+            return redirect('users:login')
     else:
         form = SignupForm()
 
@@ -84,4 +108,4 @@ def signup(request):
 def logout_view(request):
         """logout a user."""
         logout(request) 
-        return redirect('login')
+        return redirect('users:login')
