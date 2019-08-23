@@ -22,7 +22,7 @@ def list_posts(request):
 
 
 @login_required
-def create_post(request):
+def create(request):
     """Create new post view."""
     if request.method == 'POST':
         form = PostForm(request.POST, request.FILES)
